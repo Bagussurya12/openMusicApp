@@ -5,7 +5,7 @@ const albums = require("./Albums");
 const addAlbumHandler = (request, h) => {
   const { name, year } = request.payload;
 
-  const id = `album-${nanoid(16)}`;
+  const { id } = `album-${nanoid(16)}`;
 
   const newAlbum = {
     id,
