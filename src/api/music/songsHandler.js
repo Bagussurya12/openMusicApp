@@ -4,7 +4,7 @@ const songs = require("./songs");
 const addSongsHandler = (request, h) => {
   const { title, year, genre, performer, duration, albumId } = request.payload;
 
-  const { id } = nanoid(16);
+  const id = nanoid(16);
   const newSong = {
     title,
     year,
