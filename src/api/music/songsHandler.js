@@ -4,8 +4,9 @@ const songs = require("./songs");
 const addSongsHandler = (request, h) => {
   const { title, year, genre, performer, duration, albumId } = request.payload;
 
-  const id = nanoid(16);
+  const id = `song-${nanoid(16)}`;
   const newSong = {
+    id,
     title,
     year,
     genre,
@@ -58,7 +59,7 @@ const getSongByIdHandler = (request, h) => {
   }
   const response = h.response({
     status: "fail",
-    message: "catatan tidak ditemukan",
+    message: "lagu tidak ditemukan",
   });
   response.code(404);
   return response;
@@ -103,7 +104,7 @@ const deleteSongByIdHandler = (request, h) => {
     songs.splice(index, 1);
     const response = h.response({
       status: "success",
-      message: "Lagu berhasil ditambahkan",
+      message: "Lagu berhasil dihapus",
     });
     response.code(200);
     return response;

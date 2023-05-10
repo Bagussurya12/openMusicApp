@@ -86,7 +86,7 @@ const deleteAlbumByIdHandler = (request, h) => {
 
   const index = albums.findIndex((album) => album.id === id);
   if (index !== -1) {
-    notes.splice(index, 1);
+    albums.splice(index, 1);
     const response = h.response({
       status: "success",
       message: "Album Berhasil dihapus",
