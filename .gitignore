@@ -1,2 +1,4 @@
 node_modules
 openMusicApp.pem
+.env
+.prod.env
