@@ -1,6 +1,7 @@
 require("dotenv").config();
 const Hapi = require("@hapi/hapi");
 const Jwt = require("@hapi/jwt");
+const ClientError = require("./exceptions/ClientError");
 
 // Albums
 const albums = require("./api/albums");
@@ -20,16 +21,26 @@ const AuthenticationsService = require("./services/postgres/AuthenticationsServi
 const TokenManager = require("./tokenize/TokenManager");
 const AuthenticationsValidator = require("./validator/authentications");
 // Playlist
-const playlist = require("./api/playlists");
+const playlists = require("./api/playlists");
 const PlaylistsService = require("./services/postgres/PlaylistsService");
 const PlaylistValidator = require("./validator/playlists");
+// Playlist Songs
+const playlistSongs = require("./api/playlistSong");
+const PlaylistSongsService = require("./services/postgres/PlaylistSongsService");
+const PlaylistSongsValidator = require("./validator/playlistSongs");
+// Collaborations
+const collaborations = require("./api/collaborations");
+const CollaborationsService = require("./services/postgres/CollaborationsService");
+const CollaborationsValidator = require("./validator/collaborations");
 
 const init = async () => {
   const albumsService = new AlbumsService();
   const songsService = new SongsService();
   const usersService = new UsersService();
   const authenticationsService = new AuthenticationsService();
-  const playlistService = new PlaylistsService();
+  const collaborationsService = new CollaborationsService();
+  const playlistService = new PlaylistsService(collaborationsService);
+  const playlistSongsService = new PlaylistSongsService();
 
   const server = Hapi.server({
     port: process.env.PORT,
@@ -40,7 +51,34 @@ const init = async () => {
       },
     },
   });
-
+  server.ext("onPreResponse", (request, h) => {
+    // mendapatkan konteks response dari request
+    const { response } = request;
+    if (response instanceof Error) {
+      // penanganan client error secara internal.
+      if (response instanceof ClientError) {
+        const newResponse = h.response({
+          status: "fail",
+          message: response.message,
+        });
+        newResponse.code(response.statusCode);
+        return newResponse;
+      }
+      // mempertahankan penanganan client error oleh hapi secara native, seperti 404, etc.
+      if (!response.isServer) {
+        return h.continue;
+      }
+      // penanganan server error sesuai kebutuhan
+      const newResponse = h.response({
+        status: "error",
+        message: "terjadi kegagalan pada server kami",
+      });
+      newResponse.code(500);
+      return newResponse;
+    }
+    // jika bukan error, lanjutkan dengan response sebelumnya (tanpa terintervensi)
+    return h.continue;
+  });
   await server.register([
     {
       plugin: Jwt,
@@ -95,10 +133,28 @@ const init = async () => {
       },
     },
     {
-      plugin: playlist,
+      plugin: playlists,
       options: {
         service: playlistService,
+        usersService,
+        collaborationsService,
         validator: PlaylistValidator,
+      },
+    },
+    {
+      plugin: playlistSongs,
+      options: {
+        service: playlistSongsService,
+        playlistService,
+        validator: PlaylistSongsValidator,
+      },
+    },
+    {
+      plugin: collaborations,
+      options: {
+        CollaborationsService,
+        playlistService,
+        validator: CollaborationsValidator,
       },
     },
   ]);
